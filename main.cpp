@@ -43,7 +43,11 @@ vector<unsigned char> applySobel(vector<vector<unsigned char>> img, vector<vecto
             // the max difference is either 2*255 + 1*255 + 1*255 = 4*255 = 1020
             // min difference = 2*-255 - 1*255 - 1*255 = -1020
             // so divide by 1020 and add 128, and see what that does
-            output_img[i*img_dimension + j] = (result*127)/max_val+ 128; 
+            int positive_result = (result*255)/max_val;
+            if (positive_result < 0)
+                positive_result = -positive_result;
+
+            output_img[i*img_dimension + j] = positive_result; 
             // if the difference result = 0, then the 128 value will be output to a file
             //
             // using the i*number + j indexing makes sure that the number ends up in the right place
@@ -74,13 +78,45 @@ void toFile(vector<unsigned char> img, const char * filename ){
 
 }
 
+vector<unsigned char> chooseHighIntensity(vector<unsigned char> first, vector<unsigned char> second){
+    int size = first.size();
+    if (second.size() < size)
+        size = second.size();
+
+    vector<unsigned char> result;
+    result.resize(size);
+
+    for (int i = 0; i < size; ++i){
+        if (first[i] > second[i])
+            result[i] = first[i];
+        else
+            result[i] = second[i];
+
+    }
+    return result;
+}
+// takes any number above a threshhold (in the array) and sets it to 255
+vector<unsigned char> raiseAboveThresh(vector<unsigned char> input, unsigned char thresh){
+
+    vector<unsigned char> output;
+    int size = input.size();
+
+    output.resize(size);
+    for (int i = 0; i < size; ++i){
+        if (input[i] > thresh)
+            output[i] = 255;
+        else 
+            output[i] = input[i];
+    }
+ return output;
+}
+
 int main(){
 
 const char * fname = "input_image.raw";
     ifstream input_image (fname, ios::binary);
     int img_dimension = 500;
     if (input_image.is_open()){
-        // do stuff
         //
         // get file zie
         input_image.seekg(0, input_image.end);
@@ -104,6 +140,7 @@ const char * fname = "input_image.raw";
 
         input_image.close();
 
+        unsigned char img_thresh = 50;
 
         // initialize Sobel operator
         vector<vector<char>> sobel_op;
@@ -118,8 +155,7 @@ const char * fname = "input_image.raw";
 
         // this loop multiplies the sobel_op with the image
         int max = (1+1+2)*255;
-        vector<unsigned char> output_img = applySobel(img_matrix, sobel_op, max);
-        toFile(output_img, "3x3horizontal.raw");
+        vector<unsigned char> horiz = applySobel(img_matrix, sobel_op, max);
 
 
         // generate the vertical operator
@@ -130,8 +166,11 @@ const char * fname = "input_image.raw";
 
             sobel_op[2].assign({ -1, -2, -1  });
 
-        output_img = applySobel(img_matrix, sobel_op, max);
-        toFile(output_img, "3x3vertical.raw");
+        vector<unsigned char> vert = applySobel(img_matrix, sobel_op, max);
+        vector<unsigned char> edge = chooseHighIntensity(horiz, vert);
+        toFile(edge, "3x3gradient.raw");
+        edge = raiseAboveThresh(edge, img_thresh);
+        toFile(edge, "3x3edge.raw");
 
 
         // generate the5x5 vertical operator
@@ -150,8 +189,7 @@ const char * fname = "input_image.raw";
         for (int i = 0; i < sobel_op.size(); ++i){
             max += (sobel_op[0][i] + sobel_op[1][i])*255; 
         }
-        output_img = applySobel(img_matrix, sobel_op, max);
-        toFile(output_img, "5x5vertical.raw");
+ vert = applySobel(img_matrix, sobel_op, max);
             
         sobel_op.resize(5);
             sobel_op[0].assign({ 1, 2, 0, -2,  -1  });
@@ -165,8 +203,12 @@ const char * fname = "input_image.raw";
             sobel_op[4].assign({ 1, 2, 0, -2,  -1  });
 
 
-        output_img = applySobel(img_matrix, sobel_op, max);
-        toFile(output_img, "5x5horizontal.raw");
+        horiz= applySobel(img_matrix, sobel_op, max);
+        edge = chooseHighIntensity(horiz, vert);
+
+        toFile(edge, "5x5gradient.raw");
+        edge = raiseAboveThresh(edge, img_thresh);
+        toFile(edge, "5x5edge.raw");
     }
     else {
         cerr << "Couldn't open " << fname << " for reading\n";
