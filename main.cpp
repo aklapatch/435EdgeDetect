@@ -140,7 +140,7 @@ const char * fname = "input_image.raw";
 
         input_image.close();
 
-        unsigned char img_thresh = 50;
+        unsigned char img_thresh = 20;
 
         // initialize Sobel operator
         vector<vector<char>> sobel_op;
@@ -168,9 +168,9 @@ const char * fname = "input_image.raw";
 
         vector<unsigned char> vert = applySobel(img_matrix, sobel_op, max);
         vector<unsigned char> edge = chooseHighIntensity(horiz, vert);
-        toFile(edge, "3x3gradient.raw");
+        toFile(edge, "3x3gradient.data");
         edge = raiseAboveThresh(edge, img_thresh);
-        toFile(edge, "3x3edge.raw");
+        toFile(edge, "3x3edge.data");
 
 
         // generate the5x5 vertical operator
@@ -206,9 +206,9 @@ const char * fname = "input_image.raw";
         horiz= applySobel(img_matrix, sobel_op, max);
         edge = chooseHighIntensity(horiz, vert);
 
-        toFile(edge, "5x5gradient.raw");
+        toFile(edge, "5x5gradient.data");
         edge = raiseAboveThresh(edge, img_thresh);
-        toFile(edge, "5x5edge.raw");
+        toFile(edge, "5x5edge.data");
     }
     else {
         cerr << "Couldn't open " << fname << " for reading\n";
